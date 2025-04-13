@@ -1,0 +1,370 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        780,
+        0
+      ],
+      "id": "d5fabda7-269f-4aa3-9c8d-a350a7be30e4",
+      "name": "AI Agent",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        780,
+        180
+      ],
+      "id": "84478984-9471-4eb2-b180-576fa403f63e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IElzMwg9m8NpNVYB",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kiểm tra và lấy dữ liệu đầu vào\nconst chatMessage = $input.first().json.body.message || 'No question provided';\nconst riskCriterias = $input.first().json.body.risk_criterias.length > 0 ? $input.first().json.body.risk_criterias.map(item => item || 'unknown').join(', ') : 'no fields provided';\n\n// Prompt để phân tích ngữ nghĩa và xác định ý định\nconst classificationPrompt = `You are an AI assistant skilled in intent detection and multilingual analysis. Your task is to analyze the provided question to determine if it is related to vehicle insurance underwriting. Follow these steps:\n\n1. **Understand the Question**:\n   - Analyze the question in its original language.\n   - If the language is not English, translate it to English to standardize analysis (but keep the original meaning).\n   - Consider synonyms, natural language variations, and context (e.g., \"xe hơi\" = \"car\", \"bảo hiểm ô tô\" = \"vehicle insurance\").\n\n2. **Determine Intent**:\n   - A question is related to vehicle insurance underwriting if it involves:\n     - Vehicle details (e.g., make, model, year, mileage, condition).\n     - Insurance policies (e.g., coverage, premiums, claims).\n     - Risk assessment (e.g., damage, repairs, valuation).\n   - Examples of related questions:\n     - \"Định giá bảo hiểm cho xe Toyota 2018, 80.000km.\"\n     - \"Can my scratched car get insurance?\"\n     - \"Xe tôi bị xước, có được bồi thường không?\"\n   - Examples of unrelated questions:\n     - \"Dịch 'insurance' sang tiếng Việt.\"\n     - \"Sáng mai ăn gì?\"\n     - \"What's the weather tomorrow?\"\n\n3. **Exclude Unrelated Topics**:\n   - Questions about translation, definitions, weather, food, or other unrelated topics should be classified as unrelated.\n   - If the question mentions \"insurance\" but is not about vehicles (e.g., \"health insurance\"), classify it as unrelated.\n\n4. **Output**:\n   - Return a JSON object with:\n     - \"isUnderwriterRelated\": true/false (true if related to vehicle insurance underwriting).\n     - \"englishTranslation\": The question translated to English (or original if already English).\n     - \"reason\": A brief explanation of your decision.\n\n**Question**: ${chatMessage}\n\n**Response Format**:\n- return with json format\n{\n  \"isUnderwriterRelated\": boolean,\n  \"englishTranslation\": \"string\",\n  \"reason\": \"string\"\n}`;\n\n// Prompt cho câu hỏi không liên quan\nconst generalPrompt = `You are a helpful AI assistant. Respond to the user's question in a friendly and accurate manner. For translation requests, provide accurate translations with context. For casual questions, give practical suggestions. If the question is unrelated to your capabilities or too vague, reply with: \"I'm not set up to handle this task. Can you provide more details or ask about vehicle insurance?\"\n\n**Question**: ${chatMessage}\n\n**Response Format**:\n{\n  \"response\": \"your_answer\"\n}`;\n\n// Trả về prompt để Gemini 2.0 Flash xử lý phân loại\nreturn {\n      chatInput: classificationPrompt,\n      originalChatInput: chatMessage,\n      riskCriterias: riskCriterias,\n      generalPrompt: generalPrompt\n  }"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "id": "ba92e93b-e6dc-4758-9e95-28d6b55f84ab",
+      "name": "Code",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1780,
+        -200
+      ],
+      "id": "4286ad4f-7e3c-41bf-95d6-5a5458450fa2",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-exp-03-25",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        -40
+      ],
+      "id": "3f793fec-bdfc-4ea2-bb17-8f545c6d05af",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IElzMwg9m8NpNVYB",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy dữ liệu từ Workflow 1\n// const chatMessage = $input.first()?.json.chatInput || 'No question provided';\nconst names = $('Webhook').first().json.body.risk_criterias;\n\nconst englishTranslation = $input.first()?.json.englishTranslation;\n\n// Prompt cho câu hỏi underwriter\nconst underwriterPrompt = `You are a skilled vehicle insurance assessor with extensive knowledge of risk assessment based on vehicle data (e.g. vehicle images, inspection reports, insurance history, technical information). Analyze the vehicle data from the provided question and structure your answer as follows:\n\n1. Data Types & Basic Information\nIdentify the data type (e.g. vehicle images, inspection reports, insurance history, technical information).\n\nDescribe relevant vehicle information (e.g. make, model, year, condition, mileage).\n\nAssess the quality and completeness of the data (is the data sufficient to assess risk?).\n\n2. Key observations\nList key findings from the data using list fields: ${names}\n\nNote any anomalies in the vehicle data (e.g. damage, wear and tear, previous repairs).\n\nInclude details such as damage location, severity, and characteristics (if there are specific measurements such as damage size, mention them).\n\nSeverity rating: Normal/Mild/Moderate/Severe.\n\nIdentify factors that impact insurance risk (e.g. accident likelihood, high repair costs, old vehicle).\n\n3. Insurance risk rating\nProvide a key risk rating (high/medium/low) with a confidence level.\n\nList potential risk factors in order of priority (e.g., vehicle condition, accident history, market value).\n\nExplain how each factor affects insurability or policy terms (e.g., exclusions, surcharges, deductibles).\n\nHighlight any important findings that require immediate attention (e.g., vehicle is at high risk of serious damage, not eligible for comprehensive coverage).\n\nSuggest policy terms or request additional data if necessary.\n\n4. Customer-Friendly Explanation\nExplain findings and risk assessments in simple, clear language that customers can understand.\n\nAvoid using technical jargon or provide explicit definitions where necessary.\n\nUse easy-to-understand comparisons (where appropriate) to illustrate risk levels.\n\nAddress common customer concerns (e.g., will coverage be approved, how will premiums be affected, are repairs needed first?).\n\n5. Research and Background\nUSE the DuckDuckGo search engine to:\nFind recent literature on auto insurance underwriting for similar vehicle conditions.\n\nSearch for standard auto insurance protocols (e.g., based on make, year, condition).\n\nProvide a list of links related to auto insurance or auto underwriting.\n\nResearch recent technological advances in auto underwriting (e.g., AI for vehicle image analysis, automated pricing systems).\n\nInclude 2-3 key references to support your analysis.\n\n6. Question body: ${englishTranslation}. If the question is related to the underwriters field, please respond in the above format. Also, act as an AI Assistance to respond to users.\n\nResponse Format:\nUse clear headings and bullet points.\n\nProvide concise yet comprehensive responses that focus on the factors that influence insurance decisions.`;\n\n// Trả về prompt để xử lý\nreturn [\n  {\n    json: {\n      chatInput: underwriterPrompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -200
+      ],
+      "id": "c761956d-0b3d-4a06-87c8-5d7ccce83e2b",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "451bce3a-6d5c-43fc-8b9f-7e4d838dbcb3",
+              "leftValue": "={{ $json.isUnderwriterRelated }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        0
+      ],
+      "id": "ad64dbb5-27c3-42e0-aac4-a4e1970b9321",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.englishTranslation }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1620,
+        160
+      ],
+      "id": "160958c6-b89e-4d00-843b-97113815ff73",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        340
+      ],
+      "id": "e7602810-0080-4fac-acc4-eec7c525bf2a",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IElzMwg9m8NpNVYB",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data from previous node\nconst inputData = $input.first().json.output\n\n// Remove the code block markers and parse the JSON\nconst cleanedJson = inputData\n  .replace(/```json\\n/, '')  // Remove opening code block\n  .replace(/\\n```/, '');     // Remove closing code block\n\n// Parse the cleaned string to get the JSON object\nconst parsedData = JSON.parse(cleanedJson);\n\n// Return the parsed data\nreturn [{json: parsedData}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        0
+      ],
+      "id": "b57aa622-15c2-4eec-990b-32b38166a9f4",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ff97a50a-0b6c-428c-8a88-894d4c584394",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "c2d5e888-c62d-4193-b603-f063b62ddac4",
+      "name": "Webhook",
+      "webhookId": "ff97a50a-0b6c-428c-8a88-894d4c584394"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2140,
+        -200
+      ],
+      "id": "de329c13-dd8c-484a-ba2f-19d907f8ce18",
+      "name": "Respond to Webhook",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        160
+      ],
+      "id": "ab18387c-e6f1-4d65-9be3-fffdab9ebe82",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1855b9c-b8bc-467c-a318-e5c2fb572511",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "43b39800e8c4c2a30fb6c2e6a9cf9206c1d1b58dd36d9094c53ea559adf877c4"
+  },
+  "id": "R7EUXBkXhtzRCTRt",
+  "tags": []
+}
