@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
 import { CriteriaService } from './criteria.service';
 
 @Controller('criteria')
@@ -19,4 +19,14 @@ export class CriteriaController {
   async createCriteria(@Body() criteriaDto: any) {
     return this.criteriaService.createCriteria(criteriaDto);
   }
-} 
+
+  @Post('/configs')
+  async createOrUpdateConfigs(@Body() configDto: any) {
+    return this.criteriaService.createOrUpdateConfigs(configDto);
+  }
+
+  @Delete('delete-by-user')
+  async deleteByUserId(@Query('userId') userId: string) {
+    return this.criteriaService.deleteByUserId(userId);
+  }
+}
