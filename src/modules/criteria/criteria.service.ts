@@ -19,6 +19,10 @@ export class CriteriaService {
     return this.airtableService.create('risk_criteria', criteriaDto);
   }
 
+  async getCriteriaConfigByEmail(email: string) {
+    return this.airtableService.findMany('criteria_config', { email: email });
+  }
+
   async createOrUpdateConfigs(configDto: any) {
     const userId = 2; // TODO: get user id from auth
     

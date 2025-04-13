@@ -1,31 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { CriteriaService } from '../criteria/criteria.service';
 import { UserPayload } from '../../auth/jwt.service';
+import { AirtableService } from '../airtable/airtable.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly criteriaService: CriteriaService) {}
+  constructor(
+    private readonly criteriaService: CriteriaService,
+    private readonly airtableService: AirtableService,
+  ) {}
 
   async initData(user: UserPayload) {
     //TODO: implement later
     // Kiểm tra xem user đã có dữ liệu chưa
-    // const existingCriteria = await this.criteriaService.getCriteriaById(user.id);
+    const existingUsers = await this.airtableService.findMany('user', {email: user.email});
+    if (existingUsers.records.length == 0) {
+      // Create new user
+      await this.airtableService.create('user', { email: user.email });
+    }
+    const existingCriteria = await this.criteriaService.getCriteriaConfigByEmail(user.email);
     
-    // if (existingCriteria && existingCriteria.length > 0) {
-    //   // Nếu đã có dữ liệu, trả về tất cả criteria
-    //   return {
-    //     message: 'User data already exists',
-    //     data: existingCriteria
-    //   };
-    // }
+    if (existingCriteria && existingCriteria.records.length > 0) {
+      // Nếu đã có dữ liệu, trả về tất cả criteria
+      return {
+        message: 'User data already exists',
+        data: existingCriteria.records.map(record => record.fields)
+      };
+    }
 
-    // // Nếu chưa có dữ liệu, tạo mới
-    // const newCriteria = await this.criteriaService.createDefaultCriteria(user.id);
-    
-    // return {
-    //   message: 'New user data initialized',
-    //   data: newCriteria
-    // };
+    return {
+      message: 'New user data initialized, user should be redirected to criteria config',
+      data: []
+    };
   }
 
   async login(loginDto: any) {
@@ -37,4 +43,4 @@ export class AuthService {
     // Implement registration logic here
     return { message: 'Registration successful' };
   }
-} 
+}

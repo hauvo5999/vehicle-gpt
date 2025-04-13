@@ -99,7 +99,9 @@ export class AirtableService {
   async findMany(tableName: string, filters: Record<string, any>): Promise<AirtableResponse> {
     try {
       const records = await this.base(tableName).select({
-        filterByFormula: `{user_id} = '${filters.user_id}'`
+        filterByFormula: Object.keys(filters)
+          .map(key => `{${key}} = '${filters[key]}'`)
+          .join(' AND ')
       }).all();
       return {
         records: records.map(record => ({
