@@ -23,14 +23,14 @@ export class AuthService {
     if (existingCriteria && existingCriteria.records.length > 0) {
       // Nếu đã có dữ liệu, trả về tất cả criteria
       return {
-        message: 'User data already exists',
-        data: existingCriteria.records.map(record => record.fields)
+        message: 'Config already exists',
+        isInitConfig: true,
       };
     }
 
     return {
       message: 'New user data initialized, user should be redirected to criteria config',
-      data: []
+      isInitConfig: false,
     };
   }
 
