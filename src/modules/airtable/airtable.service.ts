@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import * as Airtable from 'airtable';
-import {
-  AirtableRecord,
-  AirtableResponse,
-} from '../../interfaces/airtable.interface';
+import { AirtableRecord } from '../../interfaces/airtable.interface';
+
+interface AirtableRecordResponse {
+  id: string;
+  fields: Record<string, any>;
+}
 
 @Injectable()
 export class AirtableService {
@@ -15,15 +17,31 @@ export class AirtableService {
     }).base(process.env.AIRTABLE_BASE_ID);
   }
 
-  async findAll(tableName: string): Promise<AirtableResponse> {
-    try {
-      const records = await this.base(tableName).select().all();
+  async findAll(tableName: string): Promise<{ records: AirtableRecord[] }> {
+    const records = await this.base(tableName).select().all();
+    return { 
+      records: records.map(record => (record as unknown as AirtableRecordResponse).fields as AirtableRecord)
+    };
+  }
+
+  async getRecords(tableName: string, options?: any): Promise<any[]> {
+    const records = await this.base(tableName).select(options).all();
+    return records.map(record => {
+      const response = record as unknown as AirtableRecordResponse;
       return {
-        records: records.map(record => record.fields),
+        id: response.id,
+        ...response.fields
       };
-    } catch (error) {
-      throw new Error(`Failed to fetch records: ${error.message}`);
-    }
+    });
+  }
+
+  async createRecord(tableName: string, data: any): Promise<any> {
+    const record = await this.base(tableName).create(data);
+    const response = record as unknown as AirtableRecordResponse;
+    return {
+      id: response.id,
+      ...response.fields
+    };
   }
 
   async findOne(tableName: string, id: string): Promise<AirtableRecord> {
